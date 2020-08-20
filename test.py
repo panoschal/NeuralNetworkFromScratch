@@ -188,90 +188,7 @@ class NeuralNetwork():
 
         return np.sum( (y_pred - y_true)**2 )
 
-    def train_v1(self, trainset, epochs=5):
-
-        for epoch in range(epochs):
-            # one gradient descent step
-
-            # calculate the negative gradient of the cost function
-            # a vector with 13002 elements
-            # each corresponds to one model parameter (weight or bias)
-            # shows how sensitive the cost function is, to this parameter (nudge in this parameter, yields big or small change in the cost function result)
-
-            for x, y_true in trainset:
-                y_pred = self.forward_one_example(x)
-                cost = self.cost_one_example(y_pred, y_true)
-
-                # this is the partial derivative (one element of the gradient)
-                # average it over all training examples
-                C_over_weights_this_layer = (
-                                            2*(activations_this_layer - y_true) *
-                                            sigmoid_derivative( z_this_layer ) 
-                                            ).reshape((None,1)) @ activations_previous_layer.reshape((1,None))
-
-                C_over_biases_this_layer = (2*(activations_this_layer - y_true) *
-                                            sigmoid_derivative( z_this_layer ) *
-                                            1)
-
-                C_over_activations_previous_layer = (
-                                            2*(activations_this_layer - y_true) *
-                                            sigmoid_derivative( z_this_layer ) 
-                                            ).reshape((1,None)) @ weights_this_layer # cant directly influence this, will backpropagate to find C over other weights and biases
-
-                
-                
-
-            # nudge each model parameter to the direction this showed
-            # multiplied by the learning rate
-
-    def train_v2(self, trainset, epochs=5):
-
-        for epoch in range(epochs):
-            # one gradient descent step
-
-            # calculate the negative gradient of the cost function
-            # a vector with 13002 elements
-            # each corresponds to one model parameter (weight or bias)
-            # shows how sensitive the cost function is, to this parameter (nudge in this parameter, yields big or small change in the cost function result)
-
-            for x, y_true in trainset:
-                y_pred = self.forward_one_example(x)
-                cost = self.cost_one_example(y_pred, y_true)
-
-
-                # C_over_activations[i] means: partial derivatives of C over activations of layer i (some of the elements that will go into the gradient)
-
-                # initializations
-                N = len(self.layers)
-                C_over_activations[N-1] = 2*(activations[this_layer] - y_true) # imaginary initial derivatives for the one past final layer
-                activations[-1] = x
-
-                for l, layer in enumerate(self.layers)[::-1]:
-                    this_layer = l
-                    previous_layer = l-1
-
-                    # average it over all training examples
-                    C_over_weights[this_layer] = (
-                                                C_over_activations[this_layer] *
-                                                sigmoid_derivative( z[this_layer] ) 
-                                                ).reshape(None,1) @ activations[previous_layer].reshape(1,None)
-
-                    C_over_biases[this_layer] = (C_over_activations[this_layer] *
-                                                sigmoid_derivative( z[this_layer] ) *
-                                                1)
-
-                    if previous_layer >= 0: # we dont care about C over activations of the -1 layer (inputs)
-                        C_over_activations[previous_layer] = (
-                                                C_over_activations[this_layer] *
-                                                sigmoid_derivative( z[this_layer] ) 
-                                                ).reshape(1,None) @ weights[this_layer] # cant directly influence this, will backpropagate to find C over other weights and biases
-
-            
-
-            # nudge each model parameter to the direction this showed
-            # multiplied by the learning rate
-
-    def train_v3(self, X_train, Y_train, epochs=5, learning_rate=3000, batch_size=64):
+    def train(self, X_train, Y_train, epochs=5, learning_rate=0.1, batch_size=64):
         final_layer = len(self.layers) - 1
 
         for epoch in tqdm(range(epochs)):
@@ -321,8 +238,7 @@ class NeuralNetwork():
                     biases = [biases for weights, biases in self.layers]
 
                     for l, layer in list(enumerate(self.layers))[::-1]:
-                        assert isinstance(l, int)
-                        assert isinstance(layer, list)
+                        assert isinstance(l, int) and isinstance(layer, list)
                         this_layer = l
                         previous_layer = l-1
 
@@ -365,7 +281,6 @@ class NeuralNetwork():
 
             print('train average loss', total_loss.result())
             print('train accuracy', accuracy.result(), sum(accuracies)/len(accuracies))
-            print('accuracies', accuracies[0:5])
 
     def update_model_parameters(self, learning_rate, negative_gradient_all_batch):
         for l, layer in enumerate(self.layers):
@@ -383,14 +298,13 @@ class NeuralNetwork():
 # %%
 
 nn = NeuralNetwork(input_size=784, layer_sizes=(64, 10))
-nn.train_v3(X_train[0:10000], Y_train[0:10000], 
+nn.train(X_train[0:10000], Y_train[0:10000], 
     epochs=60, learning_rate=0.1, batch_size=64)
 # %%
 nn.inference(trainset.data[20000])
 # %%
 
 # with keras
-import tensorflow.compat.v2 as tf
 
 model = tf.keras.models.Sequential([
   tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
